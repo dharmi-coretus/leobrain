@@ -508,11 +508,58 @@ if (envEducation && allEduValues.includes(envEducation)) {
 
 await page.waitForTimeout(300);
 
-  await page.getByRole('combobox', { name: 'Additional Perks (Optional)' }).click();
-  await page.locator('div').filter({ hasText: /^Transport$/ }).click();
-  await page.getByText('Performance Bonuses').click();
-  await page.getByText('Overtime Pay').click();
-  await page.locator('html').click();
+  // await page.getByRole('combobox', { name: 'Additional Perks (Optional)' }).click();
+  // await page.locator('div').filter({ hasText: /^Transport$/ }).click();
+  // await page.getByText('Performance Bonuses').click();
+  // await page.getByText('Overtime Pay').click();
+  // await page.locator('html').click();
+
+  // 📌 ADDITIONAL PERKS SELECTION BLOCK
+
+console.log("🔧 Selecting Additional Perks...");
+
+// 1. Read and process the dynamic data from a fixed environment variable key
+// We use a fixed key (e.g., ADDITIONAL_PERKS_LIST) since it's a standalone field.
+const envKey = 'ADDITIONAL_PERKS_LIST';
+const rawPerks = (process.env[envKey] || "")
+  .split(",")
+  .map(x => x.trim()) // Keep original case/spacing to match UI text exactly
+  .filter(Boolean);
+
+if (rawPerks.length === 0) {
+  console.log(`⚠ No perks found in environment variable: ${envKey}. Skipping selection.`);
+  return;
+}
+
+// 2. Open the main combobox dropdown
+const ddlPerks = page.getByRole('combobox', { name: 'Additional Perks (Optional)' });
+await ddlPerks.click();
+
+// --- UI-SPECIFIC LOGIC (The Transport Category Click) ---
+// This step is kept as it was in your original hardcoded script.
+const transportCategory = page.locator('div').filter({ hasText: /^Transport$/ });
+
+if (await transportCategory.isVisible()) {
+  await transportCategory.click();
+  console.log('  ✔ Clicked Category: Transport (to reveal options)');
+}
+// --------------------------------------------------------
+
+// 3. Loop through the dynamic list and click each perk option
+for (const perk of rawPerks) {
+  const optionLocator = page.getByText(perk, { exact: true });
+
+  if (await optionLocator.isVisible()) {
+    await optionLocator.click(); 
+    console.log(`  ✔ Selected Perk: ${perk}`);
+  } else {
+    console.log(`  ⚠ Perk option not visible/found: ${perk}.`);
+  }
+}
+
+// 4. Close the dropdown (clicking away)
+await page.locator('html').click();
+console.log('  ✔ Closed Additional Perks Dropdown');
 
 await page.getByRole('button', { name: 'Next' }).click();
 
@@ -1289,33 +1336,89 @@ for (let q = 1; q <= total; q++) {
     }
   }
 
+  // // 🟣 CASE 2 → File Upload → Select File Types
+  // else if (type === "file upload") {
+  //   console.log("🔧 Selecting File Types...");
+  //   const fileTypes = (process.env[`FILE_TYPES_${q}`] || "")
+  //     .split(",")
+  //     .map(x => x.trim().toLowerCase())
+  //     .filter(Boolean);
+
+  //   const ddlFileType = page.locator('button[role="combobox"]').nth(1);
+
+  //   for (const f of fileTypes) {
+  //     await ddlFileType.click();
+  //     await page.waitForTimeout(350);
+
+  //     const option = page.locator(
+  //       `//div[contains(@class,'flex')][.//text()[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), "${f}")]]`
+  //     );
+
+  //     if (await option.count()) {
+  //       await option.click();
+  //       console.log(`  ✔ Selected File Type: ${f}`);
+  //     } else {
+  //       console.log(`  ⚠ File type not found: ${f}`);
+  //     }
+  //     await page.waitForTimeout(250);
+  //   }
+  // }
+
   // 🟣 CASE 2 → File Upload → Select File Types
-  else if (type === "file upload") {
-    console.log("🔧 Selecting File Types...");
-    const fileTypes = (process.env[`FILE_TYPES_${q}`] || "")
-      .split(",")
-      .map(x => x.trim().toLowerCase())
-      .filter(Boolean);
+else if (type === "file upload") {
+  console.log("🔧 Selecting File Types...");
 
-    const ddlFileType = page.locator('button[role="combobox"]').nth(1);
+  // 1. Read and process the dynamic data from the environment variable
+  // NOTE: Ensure your .env file has a key like FILE_TYPES_Q1="PDF (.pdf), Text File (.txt)"
+  const envKey = `FILE_TYPES_${q}`;
+  const rawFileTypes = (process.env[envKey] || "")
+    .split(",")
+    .map(x => x.trim()) // Keep original case/spacing to match UI text exactly
+    .filter(Boolean);
 
-    for (const f of fileTypes) {
-      await ddlFileType.click();
-      await page.waitForTimeout(350);
+  if (rawFileTypes.length === 0) {
+    console.log(`⚠ No file types found in environment variable: ${envKey}. Skipping selection.`);
+    return;
+  }
 
-      const option = page.locator(
-        `//div[contains(@class,'flex')][.//text()[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), "${f}")]]`
-      );
+  // Define the main locator for the dropdown using getByRole for stability
+  const ddlFileType = page.getByRole('combobox', { name: 'File Type' });
+  
+  // 2. Open the main combobox dropdown
+  await ddlFileType.click();
 
-      if (await option.count()) {
-        await option.click();
-        console.log(`  ✔ Selected File Type: ${f}`);
-      } else {
-        console.log(`  ⚠ File type not found: ${f}`);
-      }
-      await page.waitForTimeout(250);
+  // --- START OF UI-SPECIFIC LOGIC ---
+  // If your UI requires an extra click (e.g., a category like 'Transport')
+  // to reveal the file type options, keep this line.
+  // If not, you can remove it.
+  const transportCategory = page.locator('div').filter({ hasText: /^Transport$/ });
+  if (await transportCategory.isVisible()) {
+    await transportCategory.click();
+    console.log('  ✔ Clicked Category: Transport (if required)');
+  }
+  // --- END OF UI-SPECIFIC LOGIC ---
+
+  // 3. Loop through the dynamic list and click each file type option
+  for (const f of rawFileTypes) {
+    // Use the highly reliable getByText locator for the options within the open dropdown
+    // NOTE: 'f' must exactly match the text of the option (e.g., 'PDF (.pdf)')
+    const optionLocator = page.getByText(f, { exact: true });
+
+    // Use isVisible() instead of count() to check for element presence
+    if (await optionLocator.isVisible()) {
+      // Use standard click, which automatically waits for the element to be ready
+      await optionLocator.click(); 
+      console.log(`  ✔ Selected File Type: ${f}`);
+    } else {
+      console.log(`  ⚠ File type option not visible/found: ${f}.`);
+      // Consider adding a small manual check here if the option list needs scrolling.
     }
   }
+
+  // 4. Close the dropdown (clicking away, or using the combobox locator again)
+  await page.locator('html').click();
+  console.log('  ✔ Closed File Type Dropdown');
+}
 
   // 🟣 CASE 3 → No extra fields (short / long / rating / date picker / number)
   else if (noExtraTypes.includes(type)) {
