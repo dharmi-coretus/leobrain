@@ -3,8 +3,7 @@ const { signIn } = require('../helpers/auth');
 require('dotenv').config();
 
 test('Edit Job from Draft', async ({ page }) => {
-
-  const jobName = process.env.JOB_NAME;   // 📌 OR use variable from create job
+ // 📌 OR use variable from create job
   console.log("🔍 Searching job:", jobName);
 
    // Step 1: Sign in
@@ -19,10 +18,39 @@ test('Edit Job from Draft', async ({ page }) => {
   await page.locator('button:has-text("Draft")').click();
   await page.waitForTimeout(1500);
 
-  // -------- 3️⃣ Search Job Name in Draft list ----------
-  await page.fill('input[placeholder="Search"]', jobName);
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(2000);
+ // ---- STEP 1: Select all job rows ----
+const rows = page.locator(
+  '#root > div.relative.grid.h-screen.grid-cols-[220px_1fr].grid-rows-[60px_1fr].transition-all.duration-300.ease-in-out > div.bg-background.relative.h-full.overflow-auto > div > div.overflow-auto.p-6 > div > div > div.space-y-5 > div'
+);
+
+const count = await rows.count();
+console.log("🔥 Total jobs:", count);
+
+if (count === 0) {
+    throw new Error("❌ No jobs found!");
+}
+
+// ---- STEP 2: Pick random index ----
+const randomIndex = Math.floor(Math.random() * count);
+console.log("🎲 Random Job Index:", randomIndex);
+
+// ---- STEP 3: Select that job row ----
+const randomJob = rows.nth(randomIndex);
+
+// ---- STEP 4: Extract job name (optional) ----
+const jobName = await randomJob.locator(
+  'div.grid.grid-cols-[auto_1fr_auto_auto] div.flex p.text-sub-foreground.truncate.text-sm.font-medium'
+).innerText();
+
+console.log("🎯 Selected Job:", jobName);
+
+// ---- STEP 5: Click 3-dot button or card ----
+
+// 👉 Option A: Click job card
+await randomJob.click();
+
+// 👉 Option B: Click 3-dot menu inside the same job
+// await randomJob.locator('button[data-slot="dropdown-menu-trigger"]').click();
 
   // -------- 4️⃣ Click Action (three dots ⋮ icon) ----------
   const actionIcon = page.locator(`tr:has-text("${jobName}") svg[width="20"][height="20"]`);
