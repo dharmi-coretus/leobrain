@@ -508,6 +508,12 @@ if (envEducation && allEduValues.includes(envEducation)) {
 
 await page.waitForTimeout(300);
 
+  await page.getByRole('combobox', { name: 'Additional Perks (Optional)' }).click();
+  await page.locator('div').filter({ hasText: /^Transport$/ }).click();
+  await page.getByText('Performance Bonuses').click();
+  await page.getByText('Overtime Pay').click();
+  await page.locator('html').click();
+
 await page.getByRole('button', { name: 'Next' }).click();
 
 await page.waitForTimeout(300);
@@ -1055,34 +1061,10 @@ const countryNameEnv = process.env.COUNTRY_CODE?.trim(); // e.g., "India"
 const phoneNumberEnv = process.env.PHONE_NUMBER?.trim(); // e.g., "9876543210"
 
 // 1️⃣ Open Country Dropdown
-const countryDropdown = page.locator('.react-international-phone-country-selector-button');
-await countryDropdown.click();
-await page.waitForTimeout(600);
-
-// 2️⃣ Select Country by Visible Text Matching
-const countryOptions = page.locator('li[role="option"]');
-const totalOptions = await countryOptions.count();
-
-let matched = false;
-
-for (let i = 0; i < totalOptions; i++) {
-  const text = await countryOptions.nth(i).innerText();
-
-  if (text.toLowerCase().includes(countryNameEnv.toLowerCase())) {
-    await countryOptions.nth(i).click();
-    console.log(`🌍 Country selected: ${text}`);
-    matched = true;
-    break;
-  }
-}
-
-// 3️⃣ If Not Found → Select Random
-if (!matched) {
-  const randomIndex = Math.floor(Math.random() * totalOptions);
-  const randomText = await countryOptions.nth(randomIndex).innerText();
-  await countryOptions.nth(randomIndex).click();
-  console.log(`🌎 **Random Country Selected:** ${randomText}`);
-}
+await page.getByRole('combobox', { name: 'Country selector' }).click();
+  await page.getByRole('option', { name: 'Hong Kong +' }).click();
+  await page.locator('input[name="phone"]').click();
+  await page.locator('input[name="phone"]').fill('+852 3453 45345');
 
 // 4️⃣ Enter Phone Number
 const phoneInput = page.locator('input[name="phone"]');
