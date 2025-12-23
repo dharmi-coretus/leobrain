@@ -3,73 +3,190 @@ const { signIn } = require('../helpers/auth');
 require('dotenv').config();
 
 test('Edit Job from Draft', async ({ page }) => {
- // 📌 OR use variable from create job
-  console.log("🔍 Searching job:", jobName);
 
-   // Step 1: Sign in
+  // Step 1: Sign in
   await signIn(page);
-  await page.waitForTimeout(1000); // wait before clicking
 
-  // -------- 1️⃣ Navigate to Jobs section ----------
+  // Navigate to Jobs
   await page.locator('button:has-text("Jobs")').click();
-  await page.waitForTimeout(1000);
 
-  // -------- 2️⃣ Select Draft tab ----------
+  // Select Draft tab
   await page.locator('button:has-text("Draft")').click();
-  await page.waitForTimeout(1500);
 
- // ---- STEP 1: Select all job rows ----
-const rows = page.locator(
-  '#root > div.relative.grid.h-screen.grid-cols-[220px_1fr].grid-rows-[60px_1fr].transition-all.duration-300.ease-in-out > div.bg-background.relative.h-full.overflow-auto > div > div.overflow-auto.p-6 > div > div > div.space-y-5 > div'
+await page.waitForSelector('div.rounded-\\[12px\\]');
+
+const firstCard = page.locator('div.rounded-\\[12px\\]').first();
+ await page.waitForTimeout(1000);
+await firstCard.locator('button[aria-haspopup="menu"]').click();
+ await page.waitForTimeout(1000);
+
+
+// Click Edit from dropdown
+await page.getByRole('menuitem', { name: 'Edit' }).click();
+await page.waitForTimeout(1000);
+
+const url = page.url();
+
+if (url.includes('/description')) {
+  const descriptionEditor = page.locator(
+    'label:has-text("Description") ~ div div[contenteditable="true"]'
+  );
+
+  await descriptionEditor.click();
+  await page.keyboard.type(
+    'We are looking for a QA Engineer responsible for manual and automation testing.'
+  );
+
+  await expect(descriptionEditor).toContainText('QA Engineer');
+
+  console.log('✅ Description added');
+
+  // =========================
+  // 📌 RESPONSIBILITIES
+  // =========================
+  const responsibilitiesEditor = page.locator(
+    'label:has-text("Responsibilities") ~ div div[contenteditable="true"]'
+  );
+
+  await responsibilitiesEditor.click();
+  await page.keyboard.type(
+    '• Design and execute test cases\n' +
+    '• Perform regression and smoke testing\n' +
+    '• Collaborate with developers and product teams'
+  );
+
+  await expect(responsibilitiesEditor).toContainText('test cases');
+
+  console.log('✅ Responsibilities added');
+
+  // =========================
+  // 🎓 QUALIFICATIONS
+  // =========================
+  const qualificationsEditor = page.locator(
+    'label:has-text("Qualifications") ~ div div[contenteditable="true"]'
+  );
+
+  await qualificationsEditor.click();
+  await page.keyboard.type(
+    '• Bachelor’s degree in Computer Science or related field\n' +
+    '• 2+ years of QA experience\n' +
+    '• Strong knowledge of Playwright and API testing'
+  );
+
+  await expect(qualificationsEditor).toContainText('Playwright');
+
+  console.log('✅ Qualifications added');
+
+  // =========================
+  // 🧠 SKILLS (Tags Input)
+  // =========================
+  const skillsInput = page.locator(
+  'label:has-text("Skills") ~ div input'
 );
 
-const count = await rows.count();
-console.log("🔥 Total jobs:", count);
+// Clear existing skills
+const removeSkillButtons = page.locator(
+  'label:has-text("Skills") ~ div button'
+);
 
-if (count === 0) {
-    throw new Error("❌ No jobs found!");
+while (await removeSkillButtons.count() > 0) {
+  await removeSkillButtons.first().click();
 }
 
-// ---- STEP 2: Pick random index ----
-const randomIndex = Math.floor(Math.random() * count);
-console.log("🎲 Random Job Index:", randomIndex);
+const skills = [
+  'Playwright',
+  'Manual Testing',
+  'Automation Testing',
+  'API Testing',
+  'Agile'
+];
 
-// ---- STEP 3: Select that job row ----
-const randomJob = rows.nth(randomIndex);
+for (const skill of skills) {
+  await skillsInput.click();
+  await skillsInput.fill(skill);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+}
 
-// ---- STEP 4: Extract job name (optional) ----
-const jobName = await randomJob.locator(
-  'div.grid.grid-cols-[auto_1fr_auto_auto] div.flex p.text-sub-foreground.truncate.text-sm.font-medium'
-).innerText();
+// ✅ FIXED assertion
+const skillsSection = page.locator(
+  'label:has-text("Skills") ~ div'
+);
 
-console.log("🎯 Selected Job:", jobName);
+for (const skill of skills) {
+  await expect(
+    skillsSection.locator(`text=${skill}`)
+  ).toBeVisible();
+}
 
-// ---- STEP 5: Click 3-dot button or card ----
+console.log('✅ Skills added');
 
-// 👉 Option A: Click job card
-await randomJob.click();
+  // =========================
+  // ➡️ NEXT BUTTON
+  // =========================
+  const nextButton = page.locator('button:has-text("Next")');
+  await expect(nextButton).toBeEnabled();
+  await nextButton.click();
 
-// 👉 Option B: Click 3-dot menu inside the same job
-// await randomJob.locator('button[data-slot="dropdown-menu-trigger"]').click();
+  console.log('🚀 Description page completed successfully');
+}
 
-  // -------- 4️⃣ Click Action (three dots ⋮ icon) ----------
-  const actionIcon = page.locator(`tr:has-text("${jobName}") svg[width="20"][height="20"]`);
-  await actionIcon.first().click();
-  await page.waitForTimeout(1000);
+// --- Start of Payout-Specific Logic ---
 
-  // -------- 5️⃣ Click Edit from dropdown ----------
-  await page.getByRole('menuitem', { name: /Edit/i }).click();
-  await page.waitForTimeout(1500);
+// Check if the current URL contains 'payout'
+if (page.url().includes('payout')) {
+  console.log("💰 Payout URL detected. Configuring Pay Structure...");
 
-  // -------- 6️⃣ Edit Description (Example) ----------
-  await page.fill('#description', '');
-  await page.fill('#description', 'Updated job description via automation');
+  // 1. Define Locators
+  const payStructureDropdown = page.getByRole('combobox', { name: 'Pay Structure' });
+  const ddlPayFrequency = page.getByRole('combobox', { name: 'Pay Frequency' });
 
-  // -------- 7️⃣ Click Update / Save button ----------
-  await page.locator('button:has-text("Update")').click();
+  // 2. Open Pay Structure Dropdown
+  await payStructureDropdown.click();
+  
+  // NOTE: Playwright automatically waits for elements to be actionable, 
+  // so the hardcoded 'await page.waitForTimeout(500);' is generally replaced 
+  // by Playwright's auto-wait on the next action.
+  
+  // 3. Read Pay Structure from Environment Variables (Assuming q is available)
+  const envKey = `PAY_STRUCTURE_${q}`;
+  const rawPayStructure = (process.env[envKey] || "")
+    .split(",")
+    .map(x => x.trim())
+    .filter(Boolean);
 
-  // -------- 8️⃣ Confirmation check ----------
-  await expect(page.getByText(/Job updated successfully/i)).toBeVisible();
-  console.log("🎉 Job edited successfully!");
+  if (rawPayStructure.length === 0) {
+    console.log(`⚠ No Pay Structure found in environment variable: ${envKey}. Skipping selection.`);
+  } else {
+    // 4. Select the Pay Structure Option (usually just one selection)
+    const structureToSelect = rawPayStructure[0];
+    const optionLocator = page.getByRole('option', { name: structureToSelect, exact: true });
+
+    if (await optionLocator.isVisible()) {
+      await optionLocator.click();
+      console.log(`  ✔ Selected Pay Structure: ${structureToSelect}`);
+    } else {
+      console.log(`  ⚠ Pay Structure option not found: ${structureToSelect}`);
+    }
+  }
+
+  // 5. Select Pay Frequency (Assuming you need to select this next)
+  const envFreqKey = `PAY_FREQUENCY_${q}`;
+  const rawPayFrequency = (process.env[envFreqKey] || "")
+    .split(",")
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  if (rawPayFrequency.length > 0) {
+    const frequencyToSelect = rawPayFrequency[0];
+    await ddlPayFrequency.click();
+    await page.getByRole('option', { name: frequencyToSelect, exact: true }).click();
+    console.log(`  ✔ Selected Pay Frequency: ${frequencyToSelect}`);
+  }
+
+  // You may need an await page.locator('html').click() here to close dropdowns if necessary.
+}
+// --- End of Payout-Specific Logic ---
+
 
 });
