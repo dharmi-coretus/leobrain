@@ -43,7 +43,7 @@ async function addNewApprovalLevel(editModal, min = 1, max = 5) {
   console.log('✅ New level added with random approvers');
 }
 
-test('Add new requisition approval level', async ({ page }) => {
+test('Add and remove new requisition approval level ', async ({ page }) => {
   // 🔐 Sign in
   await signIn(page);
 
