@@ -3,7 +3,7 @@ const { signIn } = require('../helpers/auth');
 require('dotenv').config();
 
 
-test('Go to Settings menu and Edit Requisition', async ({ page }) => {
+test('Delete requisition', async ({ page }) => {
 
 // 🔐 Sign in
   await signIn(page);
