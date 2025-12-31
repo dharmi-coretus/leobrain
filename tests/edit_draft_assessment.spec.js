@@ -111,22 +111,58 @@ console.log('✅ Question button clicked');
 
 
 // Click the Library dropdown
-const libraryDropdown = page.locator('button[role="combobox"]').first();
-await libraryDropdown.click();
+// const libraryDropdown = page.locator('button[role="combobox"]').first();
+// await libraryDropdown.click();
 
-// Focus on visible dropdown options
-const dropdownOptions = page.locator('div[role="listbox"] [role="option"]');
+// // Focus on visible dropdown options
+// const dropdownOptions = page.locator('div[role="listbox"] [role="option"]');
 
-// Wait for options to be visible
-await dropdownOptions.first().waitFor({ state: 'visible' });
+// // Wait for options to be visible
+// await dropdownOptions.first().waitFor({ state: 'visible' });
 
-// Count visible options and pick a safe random index
-const visibleCount = await dropdownOptions.count();
-const randomIndex2 = Math.floor(Math.random() * visibleCount);
+// // Count visible options and pick a safe random index
+// const visibleCount = await dropdownOptions.count();
+// const randomIndex2 = Math.floor(Math.random() * visibleCount);
 
-// Click the random option
-await dropdownOptions.nth(randomIndex2).click();
+// // Click the random option
+// await dropdownOptions.nth(randomIndex2).click();
 
+
+// 🎯 Stable Library dropdown selector
+const libraryDropdown = page
+  .getByText('Library')
+  .locator('..')
+  .locator('button[role="combobox"]');
+
+// ⛔ Case 1: Dropdown is disabled (Edit Draft behavior)
+if (await libraryDropdown.isDisabled()) {
+  console.log('⚠️ Library dropdown is disabled in Edit mode');
+} else {
+  // 🔍 Get currently selected text
+  const libraryText = (await libraryDropdown.textContent())?.trim();
+
+  // ⛔ Case 2: Library already selected (locked by business rule)
+  if (libraryText && libraryText.length > 0) {
+    console.log(`ℹ️ Library already selected (Edit mode): ${libraryText}`);
+  } else {
+    // ✅ Case 3: Library is editable → RANDOM selection
+    await libraryDropdown.click();
+
+    const options = page.locator('div[role="listbox"] [role="option"]');
+    await options.first().waitFor({ state: 'visible' });
+
+    const optionCount = await options.count();
+    expect(optionCount).toBeGreaterThan(0);
+
+    const randomIndex = Math.floor(Math.random() * optionCount);
+    const randomOption = options.nth(randomIndex);
+
+    const selectedText = (await randomOption.textContent())?.trim();
+    await randomOption.click();
+
+    console.log(`✅ Random Library selected: ${selectedText}`);
+  }
+}
 
 
 
@@ -178,72 +214,130 @@ await getQuestionsButton.click();
 await page.waitForTimeout(1000);
 console.log('✅ "Get Questions" button clicked');
 
+
+// 1️⃣ Wait for Select All checkbox to be visible
+const selectAllCheckbox = page.getByRole('checkbox', { name: /select all/i }).first();
+
+// Fallback if checkbox has no accessible name
+await page.locator('button[role="checkbox"]#select-all').waitFor({ state: 'visible' });
+
+// 2️⃣ Click Select All checkbox
+await page.locator('button[role="checkbox"]#select-all').click();
+
+// 3️⃣ Validate checkbox is checked
+await expect(page.locator('button[role="checkbox"]#select-all'))
+  .toHaveAttribute('aria-checked', 'true');
+
+console.log('✅ Select All checkbox checked');
+
+// 4️⃣ Wait for Add button
+const addButton = page.getByRole('button', { name: 'Add' });
+await addButton.waitFor({ state: 'visible' });
+
+// 5️⃣ Click Add button
+await addButton.click();
+
+console.log('✅ Add button clicked');
+
 for (let i = 1; i <= 4; i++) {
   console.log(`🔁 Iteration ${i} started`);
 
-  // =========================
-  // 1️⃣ LIBRARY – RANDOM
-  // =========================
-  await page.locator('button[role="combobox"]').nth(0).click();
+  // Wait for page to stabilize after any previous navigation
+  await page.waitForLoadState('networkidle');
+
+  // -----------------------------
+  // 1️⃣ LOCATORS – stable
+  // -----------------------------
+  const libraryDropdown = page.locator('div.flex.flex-wrap button[role="combobox"]').nth(0);
+  const difficultyDropdown = page.locator('div.flex.flex-wrap button[role="combobox"]').nth(1);
+  const questionTypeDropdown = page.locator('div.flex.flex-wrap button[role="combobox"]').nth(2);
+  const applyButton = page.locator('div.flex.flex-wrap button[data-slot="button"]', { hasText: 'Apply' });
+
+  // -----------------------------
+  // 2️⃣ LIBRARY – RANDOM / STABLE
+  // -----------------------------
+  await libraryDropdown.waitFor({ state: 'visible' });
+  const libraryValue = await libraryDropdown.locator('span[data-slot="select-value"]').textContent();
+  if (!libraryValue?.trim()) {
+    await libraryDropdown.click();
+    let options = page.locator('div[role="listbox"] [role="option"]');
+    await options.first().waitFor({ state: 'visible' });
+    const randomOption = options.nth(Math.floor(Math.random() * await options.count()));
+    const selectedText = (await randomOption.textContent())?.trim();
+    await randomOption.click();
+    console.log(`✅ Random Library selected: ${selectedText}`);
+  } else {
+    console.log(`ℹ️ Library already selected: ${libraryValue.trim()}`);
+  }
+
+  // -----------------------------
+  // 3️⃣ DIFFICULTY – RANDOM
+  // -----------------------------
+  await difficultyDropdown.waitFor({ state: 'visible' });
+  await difficultyDropdown.click();
   let options = page.locator('div[role="listbox"] [role="option"]');
   await options.first().waitFor({ state: 'visible' });
-  await options.nth(Math.floor(Math.random() * await options.count())).click();
+  const randomDifficulty = options.nth(Math.floor(Math.random() * await options.count()));
+  const difficultyText = (await randomDifficulty.textContent())?.trim();
+  await randomDifficulty.click();
+  console.log(`✅ Selected difficulty: ${difficultyText}`);
 
-  // ============================
-  // 2️⃣ DIFFICULTY – RANDOM
-  // ============================
-  await page.locator('button[role="combobox"]').nth(1).click();
+  // -----------------------------
+  // 4️⃣ QUESTION TYPE – RANDOM
+  // -----------------------------
+  await questionTypeDropdown.waitFor({ state: 'visible' });
+  await questionTypeDropdown.click();
   options = page.locator('div[role="listbox"] [role="option"]');
   await options.first().waitFor({ state: 'visible' });
-  await options.nth(Math.floor(Math.random() * await options.count())).click();
+  const randomQuestionType = options.nth(Math.floor(Math.random() * await options.count()));
+  const questionTypeText = (await randomQuestionType.textContent())?.trim();
+  await randomQuestionType.click();
+  console.log(`✅ Selected question type: ${questionTypeText}`);
 
-  // ===============================
-  // 3️⃣ QUESTION TYPE – RANDOM
-  // ===============================
-  await page.locator('button[role="combobox"]').nth(2).click();
-  options = page.locator('div[role="listbox"] [role="option"]');
-  await options.first().waitFor({ state: 'visible' });
-  await options.nth(Math.floor(Math.random() * await options.count())).click();
+  // -----------------------------
+  // 5️⃣ APPLY
+  // -----------------------------
+  await applyButton.waitFor({ state: 'visible' });
+  await applyButton.click();
+  console.log('✅ Apply button clicked');
 
-  // ============
-  // 4️⃣ APPLY
-  // ============
-  await page.getByRole('button', { name: 'Apply' }).click();
-
-  // ===============================
-  // 5️⃣ WAIT FOR RESULT STATE
-  // ===============================
+  // -----------------------------
+  // 6️⃣ WAIT FOR RESULT STATE
+  // -----------------------------
   const noQuestions = page.getByText('No Questions Found');
   const selectAll = page.locator('button[role="checkbox"]#select-all');
 
-  // wait until either appears
+  
   await Promise.race([
     noQuestions.waitFor({ state: 'visible' }).catch(() => {}),
     selectAll.waitFor({ state: 'visible' }).catch(() => {})
   ]);
 
-  // ===============================
-  // 6️⃣ HANDLE NO QUESTIONS
-  // ===============================
+  // -----------------------------
+  // 7️⃣ HANDLE NO QUESTIONS
+  // -----------------------------
   if (await noQuestions.isVisible()) {
     console.log('⚠️ No Questions Found – skipping');
     continue;
   }
 
-  // =================
-  // 7️⃣ SELECT ALL
-  // =================
+  // -----------------------------
+  // 8️⃣ SELECT ALL
+  // -----------------------------
   await selectAll.click();
 
-  // =========
-  // 8️⃣ ADD
-  // =========
-  await page.getByRole('button', { name: 'Add' }).click();
+  // -----------------------------
+  // 9️⃣ ADD QUESTIONS
+  // -----------------------------
+  const addButton = page.getByRole('button', { name: 'Add' });
+  await addButton.waitFor({ state: 'visible' });
+  await addButton.click();
   console.log('✅ Questions added');
 
-  // wait for UI navigation after Add
+  // Wait for UI to stabilize after Add
   await page.waitForLoadState('networkidle');
 }
+
 
 await page.locator('button[data-slot="sheet-close"]').click();
 console.log('✅ Sheet closed');
