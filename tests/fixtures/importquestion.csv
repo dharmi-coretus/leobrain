@@ -1,0 +1,11 @@
+question,question_type,difficulty_level,answers,options
+What is the capital of France?,Single Select,Easy,Paris,London|Berlin|Paris|Rome
+Select all prime numbers less than 10,Multiple Select,Medium,2|3|5|7,1|2|3|4|5|6|7|8|9
+Explain the concept of recursion in programming.,Long Answer,Hard,It's a function calling itself until a base case is met,
+What is your full name?,Short Answer,Easy,ssssssssssssssssssssssssssssssss,
+How many years of experience do you have in software development?,Number,Medium,5,
+Which of these are object-oriented programming languages?,Multiple Select,Medium,Java|Python|C++,Java|Python|C++|Assembly|Fortran
+What date did you last update your resume (YYYY-MM-DD)?,Short Answer,Easy,jhjhjjhjhhjjh,
+Describe a challenging project you've worked on and how you overcame obstacles.,Long Answer,Hard,juuhhhhhhhhhhhhhhhhhhhhhhhhhhh,
+What is the square root of 64?,Number,Easy,8,
+Which continent is Mount Everest located on?,Single Select,Easy,Asia,Africa|Asia|Europe|South America
