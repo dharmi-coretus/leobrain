@@ -13,9 +13,11 @@ module.exports = defineConfig({
     baseURL: "www.leobrain.com", // default base URL
     headless: false,       // set true to run tests without UI
     trace: 'on-first-retry', // collect trace if test fails
-   // storageState: 'storageState.json' 
+   //storageState: 'storageState.json' 
+   
   },
 
+  workers:1,
   projects: [
     {
       name: 'Chromium',

@@ -1,7 +1,62 @@
 // tests/createJob.spec.js
 const { test, expect } = require('@playwright/test');
 const { signIn } = require('../helpers/auth');
+const { createCompanyFlow } = require('../helpers/createCompanyFlow');
+
 require('dotenv').config();
+function generateRandomString(min = 3, max = 100) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  const length = Math.floor(Math.random() * (max - min + 1)) + min;
+
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+function generateRandomPositiveNumber(min = 1, max = 20) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomFutureDate(maxDays = 90) {
+  const today = new Date();
+  const randomOffset = Math.floor(Math.random() * maxDays) + 1; // 1–90 days
+  const randomDate = new Date(today);
+  randomDate.setDate(today.getDate() + randomOffset);
+  return randomDate.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+async function selectRandomCompany(page) {
+  // Ensure page is alive
+  await page.waitForLoadState('domcontentloaded');
+
+  const companyDropdown = page
+    .locator('label:has-text("Company Name")')
+    .locator('xpath=following-sibling::button[@role="combobox"]');
+
+  await expect(companyDropdown).toBeVisible({ timeout: 10000 });
+
+  // Force-click avoids overlay interception (Radix UI issue)
+  await companyDropdown.click({ force: true });
+
+  const companyListbox = page.locator('[role="listbox"]');
+  await expect(companyListbox).toBeVisible({ timeout: 10000 });
+
+  const companyOptions = companyListbox.locator('[role="option"], button');
+  const companyOptionCount = await companyOptions.count();
+
+  if (companyOptionCount <= 1) {
+    return false; // only "Create Company"
+  }
+
+  const randomCompanyIndex = Math.floor(Math.random() * (companyOptionCount - 1));
+  const selectedCompany = (await companyOptions.nth(randomCompanyIndex).innerText()).trim();
+
+  await companyOptions.nth(randomCompanyIndex).click({ force: true });
+  console.log(`✅ Random company selected: ${selectedCompany}`);
+
+  return true;
+}
+
 
 test('Go to Jobs menu and click Create Job', async ({ page }) => {
   // Step 1: Sign in
@@ -20,457 +75,347 @@ const createJobButton = page.locator('button.bg-primary:has-text("Create Job")')
 await createJobButton.waitFor({ state: 'visible' });
 await createJobButton.click();
 
-// Step 4: Validate Job Title field
 
- const jobTitleInput = page.locator('input[name="job_details.job_title"]');
- await jobTitleInput.waitFor({ state: 'visible' });
+// Job Title input locator (MUST be defined before use)
+const jobTitleInput = page.locator('input[name="job_details.job_title"]');
+await jobTitleInput.waitFor({ state: 'visible' });
+
+// Generate random string (3–100 chars)
+const randomJobTitle = generateRandomString();
+
+// Fill and validate
+await jobTitleInput.fill(randomJobTitle);
+await expect(jobTitleInput).toHaveValue(randomJobTitle);
+
+console.log(`✅ Job Title entered: ${randomJobTitle} (${randomJobTitle.length} chars)`);
+
+// // Step 4: Validate Job Title field
+
+//  const jobTitleInput = page.locator('input[name="job_details.job_title"]');
+//  await jobTitleInput.waitFor({ state: 'visible' });
 
 
-// --- Validation 1: Required field ---
- // await jobTitleInput.click();
- // await jobTitleInput.fill('');
-// await page.keyboard.press('Enter');
-// await page.waitForTimeout(500);
-// await expect(page.getByText(/required/i)).toBeVisible();
-// console.log('✅ Required field validation works');
+// // --- Validation 1: Required field ---
+//  // await jobTitleInput.click();
+//  // await jobTitleInput.fill('');
+// // await page.keyboard.press('Enter');
+// // await page.waitForTimeout(500);
+// // await expect(page.getByText(/required/i)).toBeVisible();
+// // console.log('✅ Required field validation works');
 
 
- // --- Validation 2: Minimum 3 characters ---
+//  // --- Validation 2: Minimum 3 characters ---
 
- await jobTitleInput.fill('QA');
- await page.keyboard.press('Enter'); // press Enter to trigger validation
- await page.waitForTimeout(500);
+//  await jobTitleInput.fill('QA');
+//  await page.keyboard.press('Enter'); // press Enter to trigger validation
+//  await page.waitForTimeout(500);
 
-const minLengthError = page.getByText(/at least 3/i);
- await expect(minLengthError).toBeVisible();
- console.log('✅ Validation: "Minimum 3 characters" message displayed');
+// const minLengthError = page.getByText(/at least 3/i);
+//  await expect(minLengthError).toBeVisible();
+//  console.log('✅ Validation: "Minimum 3 characters" message displayed');
 
- // --- Validation 3: Maximum 100 characters ---
- const longTitle = 'A'.repeat(101);
- await jobTitleInput.fill(longTitle);
- await page.keyboard.press('Enter'); // trigger validation
-// await page.waitForTimeout(500);
+//  // --- Validation 3: Maximum 100 characters ---
+//  const longTitle = 'A'.repeat(101);
+//  await jobTitleInput.fill(longTitle);
+//  await page.keyboard.press('Enter'); // trigger validation
+// // await page.waitForTimeout(500);
 
- const maxLengthError = page.getByText(/exceed 100/i);
- await expect(maxLengthError).toBeVisible();
- console.log('✅ Validation: "Maximum 100 characters" message displayed');
+//  const maxLengthError = page.getByText(/exceed 100/i);
+//  await expect(maxLengthError).toBeVisible();
+//  console.log('✅ Validation: "Maximum 100 characters" message displayed');
 
- // --- Now enter valid job title from env ---
-const jobTitle = process.env.JOB_TITLE;
-await jobTitleInput.fill(jobTitle);
- await expect(jobTitleInput).toHaveValue(jobTitle);
-console.log(`✅ Job Title entered: ${jobTitle}`);
+//  // --- Now enter valid job title from env ---
+// const jobTitle = process.env.JOB_TITLE;
+// await jobTitleInput.fill(jobTitle);
+//  await expect(jobTitleInput).toHaveValue(jobTitle);
+// console.log(`✅ Job Title entered: ${jobTitle}`);
 
-//  /*// Step 4: Fill Job Title (from .env)
-//   const jobTitle = process.env.JOB_TITLE;
-//   const jobTitleInput = page.locator('input[name="job_details.job_title"]');
-//   await jobTitleInput.waitFor({ state: 'visible' });
-//   await jobTitleInput.click();
-//   await jobTitleInput.fill(jobTitle);
-//   await page.waitForTimeout(1000);
+// //  /*// Step 4: Fill Job Title (from .env)
+// //   const jobTitle = process.env.JOB_TITLE;
+// //   const jobTitleInput = page.locator('input[name="job_details.job_title"]');
+// //   await jobTitleInput.waitFor({ state: 'visible' });
+// //   await jobTitleInput.click();
+// //   await jobTitleInput.fill(jobTitle);
+// //   await page.waitForTimeout(1000);
 
-//   // Step 5: Verify Job Title entered
-//   await expect(jobTitleInput).toHaveValue(jobTitle);
-// */
+// //   // Step 5: Verify Job Title entered
+// //   await expect(jobTitleInput).toHaveValue(jobTitle);
+// // */
 
    // Optional page verification
  await expect(page).toHaveURL(/recruitment\/job-create\/details/);
    await expect(page.locator('h1')).toHaveText(/Create Job/i);
+   
+// Step 6: Select Department randomly
+const departmentDropdown = page.locator('button[role="combobox"]').first();
+await departmentDropdown.waitFor({ state: 'visible' });
+await departmentDropdown.click();
 
-// Step 6: Select Department dynamically
-  const departmentDropdown = page.locator('button[role="combobox"]').first();
-  await departmentDropdown.waitFor({ state: 'visible' });
-  await departmentDropdown.click();
-  await page.waitForTimeout(1000);
+// Wait for dropdown options
+const options = page.locator('[role="option"]');
+await options.first().waitFor({ state: 'visible' });
 
- const options = page.locator('[role="option"]');
-  const count = await options.count();
+const count = await options.count();
 
-  if (count > 0) {
-     const departmentName = process.env.DEPARTMENT?.trim();
-
-    // Try to match env department first
-    if (departmentName) {
-      let matched = false;
-      for (let i = 0; i < count; i++) {
-        const text = await options.nth(i).innerText();
-        if (text.trim().toLowerCase() === departmentName.toLowerCase()) {
-          await options.nth(i).click();
-          console.log(`✅ Selected Department from env: ${departmentName}`);
-          matched = true;
-          break;
-        }
-      }
-      // Fallback to random selection if not matched
-      if (!matched) {
-        const randomIndex = Math.floor(Math.random() * count);
-        await options.nth(randomIndex).click();
-        console.log(`⚠️ Department "${departmentName}" not found — selected random: index ${randomIndex + 1}`);
-      }
-    } else {
-      // No DEPARTMENT set in env → random selection
-      const randomIndex = Math.floor(Math.random() * count);
-      await options.nth(randomIndex).click();
-      console.log(`ℹ️ No DEPARTMENT in .env — selected random department index: ${randomIndex + 1}`);
-    }
-  } else {
-    console.warn('⚠️ No department options found');
-  }
-
-  await page.waitForTimeout(1000);
-
- // Step: Set number of openings dynamically using env value
-const openings = parseInt(process.env.OPENINGS || '1', 10); // default = 1
-console.log(`🧩 Openings to set: ${openings}`);
-
-// --- FIX 1: Use a more stable container locator ---
-// Locate the main container element that holds the input and buttons.
-// We can use the input's name attribute to find its parent div.
-const inputLocator = page.locator('input[name="job_details.openings"]');
-const containerLocator = inputLocator.locator('..'); // The parent div of the input
-
-// --- FIX 2: Locate buttons by their SVG content ---
-// The minus button has the horizontal line SVG path: d="M4.16602 10H15.8327"
-const minusButton = containerLocator.locator('button', { has: page.locator('path[d="M4.16602 10H15.8327"]') });
-// The plus button has the cross SVG path: d="M14.9994 10.8307H..."
-const plusButton = containerLocator.locator('button', { has: page.locator('path[d^="M14.9994 10.8307H"]') });
-
-
-// 1. Optional: reset to 1 by clicking minus until disabled
-try {
-    // Wait for the buttons to be ready
-    await minusButton.waitFor({ state: 'visible' }); 
-    
-    let currentValue = parseInt(await inputLocator.inputValue(), 10);
-
-    // If the current value is already the target, skip the loop
-    if (currentValue === openings) {
-        console.log(`✅ Openings already set to ${openings}`);
-        return;
-    }
-    
-    // Reset to min value (if necessary)
-    while (currentValue > 1) { // Assuming 1 is the minimum value
-        await minusButton.click();
-        await page.waitForTimeout(50); // Small pause for UI update
-        currentValue = parseInt(await inputLocator.inputValue(), 10);
-    }
-} catch (error) {
-    console.log('Resetting complete or button state issue:', error);
+if (count === 0) {
+  throw new Error('❌ No department options found');
 }
 
-// 2. Click + button (openings - 1) times
-// We can now start the counter from 1 since the reset should have set it to 1
-for (let i = 1; i < openings; i++) {
-    await plusButton.click();
-    await page.waitForTimeout(50); // Use a shorter, consistent pause
-}
+// Select random option
+const randomIndex = Math.floor(Math.random() * count);
+const selectedText = (await options.nth(randomIndex).innerText()).trim();
 
-// 3. Verification
-const finalValue = await inputLocator.inputValue();
-console.log(`✅ Number of openings set to ${finalValue}`);
+await options.nth(randomIndex).click();
 
-// Assert the final value
-await expect(finalValue).toBe(openings.toString());
-
-// --- Step: Select Work Shift dynamically ---
+console.log(`✅ Random Department selected: "${selectedText}" (index ${randomIndex + 1})`);
 await page.waitForTimeout(1000);
 
-// Locate the Work Shift dropdown (assuming it's the next combobox after Department)
+ // Step: Set number of openings dynamically (RANDOM positive number)
+const openings = generateRandomPositiveNumber(1, 20);
+console.log(`🧩 Random openings to set: ${openings}`);
+
+const inputLocator = page.locator('input[name="job_details.openings"]');
+await inputLocator.waitFor({ state: 'visible' });
+
+const containerLocator = inputLocator.locator('..');
+
+const minusButton = containerLocator.locator('button', {
+  has: page.locator('path[d="M4.16602 10H15.8327"]'),
+});
+
+const plusButton = containerLocator.locator('button', {
+  has: page.locator('path[d^="M14.9994 10.8307H"]'),
+});
+
+// Read current value
+let currentValue = parseInt(await inputLocator.inputValue(), 10);
+
+// Reset to minimum (1)
+while (currentValue > 1) {
+  await minusButton.click();
+  currentValue = parseInt(await inputLocator.inputValue(), 10);
+}
+
+// Increase to random value
+for (let i = 1; i < openings; i++) {
+  await plusButton.click();
+}
+
+// Verify
+await expect(inputLocator).toHaveValue(openings.toString());
+
+console.log(`✅ Number of openings successfully set to: ${openings}`);
+
 const workShiftDropdown = page.locator('button[role="combobox"]').nth(1);
 await workShiftDropdown.waitFor({ state: 'visible' });
 await workShiftDropdown.click();
-await page.waitForTimeout(1000);
 
-// Get all available options
 const shiftOptions = page.locator('[role="option"]');
+await shiftOptions.first().waitFor({ state: 'visible' });
+
 const shiftCount = await shiftOptions.count();
+if (shiftCount === 0) throw new Error('No Work Shift options found');
 
-if (shiftCount > 0) {
-  const shiftFromEnv = process.env.WORK_SHIFT?.trim();
+const randomWorkShiftIndex = Math.floor(Math.random() * shiftCount);
+const selectedShift = (await shiftOptions.nth(randomWorkShiftIndex).innerText()).trim();
 
-  if (shiftFromEnv) {
-    let matched = false;
-    for (let i = 0; i < shiftCount; i++) {
-      const optionText = await shiftOptions.nth(i).innerText();
-      if (optionText.trim().toLowerCase() === shiftFromEnv.toLowerCase()) {
-        await shiftOptions.nth(i).click();
-        console.log(`✅ Selected Work Shift from .env: ${shiftFromEnv}`);
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      const randomIndex = Math.floor(Math.random() * shiftCount);
-      await shiftOptions.nth(randomIndex).click();
-      console.log(`⚠️ Work Shift "${shiftFromEnv}" not found — selected random index ${randomIndex + 1}`);
-    }
-  } else {
-    const randomIndex = Math.floor(Math.random() * shiftCount);
-    await shiftOptions.nth(randomIndex).click();
-    console.log(`ℹ️ No WORK_SHIFT in .env — selected random Work Shift index: ${randomIndex + 1}`);
-  }
-} else {
-  console.warn('⚠️ No Work Shift options found');
-}
+await shiftOptions.nth(randomWorkShiftIndex).click();
+
+console.log(`✅ Random Work Shift selected: ${selectedShift}`);
+
 
 await page.waitForTimeout(1000);
-// --- Step: Select Work Place dynamically (radio buttons) ---
-await page.waitForTimeout(1000);
-console.log('🌍 Selecting Work Place...');
 
-// Read from .env or choose random fallback
-const workPlaceFromEnv = process.env.WORK_PLACE?.trim() || '';
+// --- Step: Select Work Place randomly ---
+console.log('🌍 Selecting random Work Place...');
 
-let workPlaceValue;
-if (workPlaceFromEnv) {
-  workPlaceValue = workPlaceFromEnv;
-} else {
-  // fallback random option
-  const allPlaces = ['Onsite', 'Remote', 'Hybrid'];
-  workPlaceValue = allPlaces[Math.floor(Math.random() * allPlaces.length)];
-}
-
-// Locate all radio buttons
+// Locate radio buttons
 const workPlaceOptions = page.locator('[role="radio"]');
-const radioCount = await workPlaceOptions.count();  // ✅ renamed variable
+await workPlaceOptions.first().waitFor({ state: 'visible' });
 
-for (let i = 0; i < radioCount; i++) {
-  const option = workPlaceOptions.nth(i);
-  const value = await option.getAttribute('value');
-
-  if (value?.toLowerCase() === workPlaceValue.toLowerCase()) {
-    await option.click();
-    console.log(`✅ Work Place selected: ${value}`);
-    break;
-  }
+const radioCount = await workPlaceOptions.count();
+if (radioCount === 0) {
+  throw new Error('❌ No Work Place radio buttons found');
 }
+
+// Pick random radio
+const randomWorkPlaceIndex = Math.floor(Math.random() * radioCount);
+const selectedOption = workPlaceOptions.nth(randomWorkPlaceIndex);
+
+// Try to log label/value
+const selectedValue =
+  (await selectedOption.getAttribute('value')) ||
+  (await selectedOption.innerText());
+
+await selectedOption.click();
+
+console.log(`✅ Random Work Place selected: ${selectedValue?.trim() || `index ${randomWorkPlaceIndex + 1}`}`);
 
 await page.waitForTimeout(500);
 
- // --- Step: Expiry Date validation and entry ---
-console.log('📅 Starting expiry date validation...');
+console.log('📅 Selecting random expiry date via calendar UI...');
 
 const dateInput = page.locator('#date');
 await dateInput.waitFor({ state: 'visible' });
+
+// Open calendar
 await dateInput.click();
-await page.waitForTimeout(1000);
 
-// --- Step 1: Calculate min and max dates ---
-const today = new Date();
-const minDate = new Date(today);
-minDate.setDate(today.getDate() + 1);
+// Wait for calendar grid
+const calendar = page.locator('[role="grid"]');
+await calendar.waitFor({ state: 'visible' });
 
-const maxDate = new Date(today);
-maxDate.setDate(today.getDate() + 90);
+// Select only enabled future dates
+const enabledDates = calendar.locator(
+  '[role="gridcell"]:not([aria-disabled="true"])'
+);
 
-const formatDate = (d) => d.toISOString().split('T')[0];
-
-const minFormatted = formatDate(minDate);
-const maxFormatted = formatDate(maxDate);
-
-console.log(`🧭 Min allowed date: ${minFormatted}`);
-console.log(`🧭 Max allowed date: ${maxFormatted}`);
-
-// --- Step 2: Test below minimum date ---
-const belowMin = new Date(today);
-belowMin.setDate(today.getDate()); // today (invalid)
-const belowMinFormatted = formatDate(belowMin);
-
-await dateInput.evaluate((el, value) => (el.value = value), belowMinFormatted);
-await page.keyboard.press('Enter');
-await page.waitForTimeout(1000);
-
-const minError = page.getByText(/minimum date/i);
-if (await minError.isVisible()) {
-  console.log('✅ Validation: Minimum date message displayed');
-} else {
-  console.warn('⚠️ Minimum date validation message not found');
+const enabledDateCount = await enabledDates.count();
+if (enabledDateCount === 0) {
+  throw new Error('❌ No selectable dates found');
 }
 
-// --- Step 3: Test above maximum date ---
-const aboveMax = new Date(today);
-aboveMax.setDate(today.getDate() + 91);
-const aboveMaxFormatted = formatDate(aboveMax);
+// Pick random date
+const randomDateIndex = Math.floor(Math.random() * enabledDateCount);
+const selectedDate = enabledDates.nth(randomDateIndex);
 
-await dateInput.evaluate((el, value) => (el.value = value), aboveMaxFormatted);
-await page.keyboard.press('Enter');
-await page.waitForTimeout(1000);
+// Capture text (for logs)
+const selectedDateText = await selectedDate.innerText();
 
-const maxError = page.getByText(/maximum date/i);
-if (await maxError.isVisible()) {
-  console.log('✅ Validation: Maximum date message displayed');
-} else {
-  console.warn('⚠️ Maximum date validation message not found');
-}
+// Click date
+await selectedDate.click();
 
-// --- Step 4: Enter valid expiry date (from env or default mid date) ---
-const envExpiryDate = process.env.EXPIRY_DATE;
-let finalDate = envExpiryDate;
+console.log(`✅ Expiry date selected successfully: ${selectedDateText}`);
 
-// if not in env, choose mid-range date (45 days from today)
-if (!finalDate) {
-  const midDate = new Date(today);
-  midDate.setDate(today.getDate() + 45);
-  finalDate = formatDate(midDate);
-}
+console.log('🏢 Selecting company (random or create new)...');
 
-await dateInput.evaluate((el, value) => (el.value = value), finalDate);
+let companySelected = await selectRandomCompany(page);
 
-await page.keyboard.press('Enter');
-await page.waitForTimeout(1000);
+if (!companySelected) {
+  console.log('⚙️ No companies found — creating new company');
 
-console.log(`✅ Valid expiry date set: ${finalDate}`);
+  // Click Create Company
+  await page.getByRole('button', { name: /create company/i }).click();
 
-const companyNameEnv = process.env.COMPANY_NAME?.trim().toLowerCase() || '';
-console.log(`🏢 Selecting company: ${companyNameEnv}`);
+  // 🟢 WAIT for create company flow to finish fully
+  await createCompanyFlow(page);
 
-// --- Target the "Company Name" dropdown ---
-const companyDropdown = page.locator('label:has-text("Company Name")')
-  .locator('xpath=following-sibling::button[@role="combobox"]');
-await companyDropdown.waitFor({ state: 'visible', timeout: 10000 });
-await companyDropdown.click();
-await page.waitForTimeout(500);
+  // 🟢 CRITICAL: wait for UI to stabilize
+  await page.waitForLoadState('networkidle');
 
-// --- Wait for dropdown options to appear ---
-const companyListbox = page.locator('[role="listbox"]');
-await companyListbox.waitFor({ state: 'visible', timeout: 10000 });
+  // 🟢 Close any lingering overlay
+  await page.keyboard.press('Escape').catch(() => {});
 
-// --- Get all options/buttons in dropdown ---
-const companyOptions = companyListbox.locator('[role="option"], button');
-const companyOptionsCount = await companyOptions.count(); // ✅ unique variable
+  console.log('🔁 Re-selecting company after creation...');
 
-let companyFound = false;
+  companySelected = await selectRandomCompany(page);
 
-// --- Loop through and match with env company name ---
-for (let c = 0; c < companyOptionsCount; c++) {
-  const option = companyOptions.nth(c);
-  const value = (await option.innerText()).trim().toLowerCase();
-
-  if (value.includes(companyNameEnv)) {
-    await option.click();
-    console.log(`✅ Selected existing company: ${value}`);
-    companyFound = true;
-    break;
+  if (!companySelected) {
+    throw new Error('❌ Company still not selectable after creation');
   }
 }
 
-// --- If not found, click the "Create Company" button ---
-if (!companyFound && companyOptionsCount > 0) {
-  const createCompanyBtn = companyOptions.last();
-  const btnText = (await createCompanyBtn.innerText()).trim();
-  await createCompanyBtn.click({ force: true });
-  console.log(`⚙️ Company not found — clicked "${btnText}" to create new one`);
-}
 
 await page.waitForTimeout(1000);
 
 console.log("📍 Selecting Location...");
 
-const envLocation = process.env.JOB_LOCATION?.trim() || "";
-
-// 1️⃣ Get dropdown button by label
+// 1️⃣ Get the dropdown button
 const locationDropdownBtn = page.getByLabel("Location", { exact: true });
-
-// 2️⃣ Click dropdown
 await locationDropdownBtn.waitFor({ state: "visible" });
-await locationDropdownBtn.click();
+
+// 2️⃣ Click to open dropdown
+await locationDropdownBtn.click({ force: true });
 await page.waitForTimeout(300);
 
-// 3️⃣ Get options
+// 3️⃣ Get all options
 const locationOptions = page.locator('[role="option"]');
-const optionCount = await locationOptions.count();
+const totalOptions = await locationOptions.count();
 
-let optionValues = [];
-for (let i = 0; i < optionCount; i++) {
-  optionValues.push(await locationOptions.nth(i).innerText());
+if (totalOptions === 0) {
+  throw new Error("❌ No location options found");
 }
 
-console.log("📋 Location Options:", optionValues);
+// 4️⃣ Pick a random index (use let to allow reassignment)
+let randomLocationIndex = Math.floor(Math.random() * totalOptions);
+const randomLocation = (await locationOptions.nth(randomLocationIndex).innerText()).trim();
 
-// 4️⃣ Match env or random
-if (envLocation && optionValues.includes(envLocation)) {
-  console.log(`✅ Matched location: ${envLocation}`);
-  await page.getByRole("option", { name: envLocation }).click();
-} else {
-  const randomOption = optionValues[Math.floor(Math.random() * optionValues.length)];
-  console.log(`⚠️ No match → Selecting random: ${randomOption}`);
-  await page.getByRole("option", { name: randomOption }).click();
-}
+console.log(`⚡ Randomly selecting Location: ${randomLocation}`);
 
-await page.waitForTimeout(500);
+// 5️⃣ Click the selected option
+await locationOptions.nth(randomLocationIndex).click({ force: true });
+
+// 6️⃣ Optional: wait briefly for UI to settle
+await page.waitForTimeout(300);
+
+console.log("✅ Location selected:", randomLocation);
+
 
 console.log("📍 Selecting Experience...");
 
-const envExperience = process.env.EXPERIENCE?.trim() || "";
-
-// 1️⃣ Target only the Experience dropdown
+// 1️⃣ Target the Experience dropdown
 const expDropdown = page.getByRole("combobox", { name: "Experience" });
+await expDropdown.waitFor({ state: "visible" });
 
-// 2️⃣ Click to open
-await expDropdown.waitFor();
-await expDropdown.click();
+// 2️⃣ Click to open dropdown
+await expDropdown.click({ force: true });
 await page.waitForTimeout(300);
 
 // 3️⃣ Get all dropdown options
 const expOptions = page.getByRole("option");
 const expCount = await expOptions.count();
 
-let allExpValues = [];
-for (let i = 0; i < expCount; i++) {
-  allExpValues.push(await expOptions.nth(i).innerText());
+if (expCount === 0) {
+  throw new Error("❌ No Experience options found");
 }
 
-console.log("📋 Experience Options:", allExpValues);
+// 4️⃣ Pick a random option
+const randomExpIndex = Math.floor(Math.random() * expCount);
+const randomExp = (await expOptions.nth(randomExpIndex).innerText()).trim();
 
-// 4️⃣ Match from env OR choose random
-if (envExperience && allExpValues.includes(envExperience)) {
-  console.log(`✅ Matched: ${envExperience}`);
-  await page.getByRole("option", { name: envExperience }).click();
-} else {
-  const randomExp = allExpValues[Math.floor(Math.random() * allExpValues.length)];
-  console.log(`⚠️ No match -> Selecting random: ${randomExp}`);
-  await page.getByRole("option", { name: randomExp }).click();
-}
+console.log(`⚡ Randomly selecting Experience: ${randomExp}`);
 
+// 5️⃣ Click the selected option
+await expOptions.nth(randomExpIndex).click({ force: true });
+
+// 6️⃣ Optional wait for UI to stabilize
 await page.waitForTimeout(300);
+
+console.log("✅ Experience selected:", randomExp);
+
 
 
 console.log("📍 Selecting Employment Type...");
 
-// Read ENV value
-const envEmploymentType = process.env.EMPLOYMENT_TYPE?.trim() || "";
-
-// 1️⃣ Select the dropdown using accessible label
+// 1️⃣ Target the Employment Type dropdown
 const empTypeDropdown = page.getByRole("combobox", { name: "Employment Type" });
+await empTypeDropdown.waitFor({ state: "visible" });
 
-// 2️⃣ Open dropdown
-await empTypeDropdown.waitFor();
-await empTypeDropdown.click();
+// 2️⃣ Click to open the dropdown
+await empTypeDropdown.click({ force: true });
 await page.waitForTimeout(300);
 
-// 3️⃣ Fetch all dropdown options
+// 3️⃣ Fetch all options
 const empOptions = page.getByRole("option");
 const totalEmpOptions = await empOptions.count();
 
-let allEmpValues = [];
-for (let i = 0; i < totalEmpOptions; i++) {
-  allEmpValues.push(await empOptions.nth(i).innerText());
+if (totalEmpOptions === 0) {
+  throw new Error("❌ No Employment Type options found");
 }
 
-console.log("📋 Employment Type Options:", allEmpValues);
+// 4️⃣ Pick a random option
+const randomIndexEmpType = Math.floor(Math.random() * totalEmpOptions);
+const randomEmpType = (await empOptions.nth(randomIndexEmpType).innerText()).trim();
 
-// 4️⃣ Match ENV value or pick random
-if (envEmploymentType && allEmpValues.includes(envEmploymentType)) {
-  console.log(`✅ Matched: ${envEmploymentType}`);
-  await page.getByRole("option", { name: envEmploymentType }).click();
-} else {
-  const randomEmp = allEmpValues[Math.floor(Math.random() * allEmpValues.length)];
-  console.log(`⚠️ No match found → Selecting random: ${randomEmp}`);
-  await page.getByRole("option", { name: randomEmp }).click();
-}
+console.log(`⚡ Randomly selecting Employment Type: ${randomEmpType}`);
 
+// 5️⃣ Click the selected option
+await empOptions.nth(randomIndexEmpType).click({ force: true });
+
+// 6️⃣ Optional: wait briefly for UI to settle
 await page.waitForTimeout(300);
+
+console.log("✅ Employment Type selected:", randomEmpType);
 
 console.log("📍 Selecting Education...");
 
@@ -890,105 +835,109 @@ await nextBtn.waitFor({ state: "visible" });
 await nextBtn.click();
 
 console.log("➡ Clicked Next");
+console.log("💰 Selecting random Pay Structure...");
 
-// PAY STRUCTURE DROPDOWN
+// 1️⃣ Open the dropdown
 const payStructureDropdown = page.getByRole('combobox', { name: 'Pay Structure' });
 await payStructureDropdown.click();
-await page.waitForTimeout(500);
+await page.waitForTimeout(500); // allow dropdown animation
 
+// 2️⃣ Get all items
 const payItems = page.locator('[data-slot="select-item"]');
 const payList = await payItems.allInnerTexts();
 
-// ENV value
-const payEnvValue = process.env.PAY_STRUCTURE?.trim();
+if (payList.length === 0) {
+  console.log('⚠ No pay structure options found.');
+  return;
+}
 
-// Pick final value
-let finalPayValue = payList.includes(payEnvValue)
-  ? payEnvValue
-  : payList[Math.floor(Math.random() * payList.length)];
+// 3️⃣ Pick a random value
+const randomPayValue = payList[Math.floor(Math.random() * payList.length)];
 
-await payItems.filter({ hasText: finalPayValue }).first().click();
+// 4️⃣ Click the random option
+await payItems.filter({ hasText: randomPayValue }).first().click();
 
-console.log(`✔ Selected Pay Structure: ${finalPayValue}`);
+console.log(`✔ Randomly selected Pay Structure: ${randomPayValue}`);
 
-// ==== PAY TERMS DROPDOWN ====
+console.log("💸 Selecting random Pay Terms...");
 
-// Click the "Pay Terms" dropdown (2nd dropdown)
+// 1️⃣ Click the "Pay Terms" dropdown (2nd dropdown)
 const payTermsDropdown = page.locator('button[role="combobox"]').nth(1);
 await payTermsDropdown.click();
-await page.waitForTimeout(500);
+await page.waitForTimeout(500); // allow dropdown animation
 
-// Get all dropdown options
+// 2️⃣ Get all dropdown options
 const payTermsOptions = page.locator('[data-slot="select-item"]');
 const availableTerms = await payTermsOptions.allInnerTexts();
 
-// ENV Value
-const envPayTerms = process.env.PAY_TERMS?.trim();
+if (availableTerms.length === 0) {
+  console.log('⚠ No Pay Terms options found.');
+  return;
+}
 
-// Choose env value if available, else random
-const selectedPayTerms = availableTerms.includes(envPayTerms)
-  ? envPayTerms
-  : availableTerms[Math.floor(Math.random() * availableTerms.length)];
+// 3️⃣ Pick a random option
+const randomPayTerms = availableTerms[Math.floor(Math.random() * availableTerms.length)];
 
-// Click selected value
-await payTermsOptions.filter({ hasText: selectedPayTerms }).first().click();
+// 4️⃣ Click the random option
+await payTermsOptions.filter({ hasText: randomPayTerms }).first().click();
 
-console.log(`✔ Selected Pay Terms: ${selectedPayTerms}`);
+console.log(`✔ Randomly selected Pay Terms: ${randomPayTerms}`);
 
-// ==== CURRENCY DROPDOWN ====
 
-// Click the "Currency" dropdown (3rd combobox)
+console.log("💱 Selecting random Currency...");
+
+// 1️⃣ Click the "Currency" dropdown (3rd combobox)
 const currencyDropdown = page.locator('button[role="combobox"]').nth(2);
 await currencyDropdown.click();
-await page.waitForTimeout(500);
+await page.waitForTimeout(500); // allow dropdown animation
 
-// Get available currency options
+// 2️⃣ Get all available currency options
 const currencyOptions = page.locator('[data-slot="select-item"]');
 const availableCurrencies = await currencyOptions.allInnerTexts();
 
-// ENV Value
-const envCurrency = process.env.CURRENCY?.trim();
+if (availableCurrencies.length === 0) {
+  console.log('⚠ No currency options found.');
+  return;
+}
 
-// Choose env value if exists else random
-const selectedCurrency = availableCurrencies.includes(envCurrency)
-  ? envCurrency
-  : availableCurrencies[Math.floor(Math.random() * availableCurrencies.length)];
+// 3️⃣ Pick a random currency
+const randomCurrency = availableCurrencies[Math.floor(Math.random() * availableCurrencies.length)];
 
-// Click selected value
-await currencyOptions.filter({ hasText: selectedCurrency }).first().click();
+// 4️⃣ Click the random currency
+await currencyOptions.filter({ hasText: randomCurrency }).first().click();
 
-console.log(`✔ Selected Currency: ${selectedCurrency}`);
+console.log(`✔ Randomly selected Currency: ${randomCurrency}`);
 
 
-// ======== READ ENV VALUES ========
-const salaryTypeEnv = process.env.SALARY_TYPE?.trim();
-const amountEnv = process.env.SALARY_AMOUNT;
-const minEnv = process.env.SALARY_MIN;
-const maxEnv = process.env.SALARY_MAX;
 
-// ======== SELECT RADIO BUTTON BASED ON TYPE ========
+console.log("💵 Selecting random Salary Type and filling values...");
+
+// ======== SELECT RADIO BUTTON BASED ON RANDOM ========
 const salaryTypeButtons = page.locator('div[role="radiogroup"] button[role="radio"]');
 
 const availableTypes = await salaryTypeButtons.evaluateAll(btns =>
   btns.map(btn => btn.getAttribute('value'))
 );
 
-const finalSalaryType = availableTypes.includes(salaryTypeEnv)
-  ? salaryTypeEnv
-  : availableTypes[Math.floor(Math.random() * availableTypes.length)];
+// 1️⃣ Pick a random salary type
+const finalSalaryType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
 
 await page.locator(`button[role="radio"][value="${finalSalaryType}"]`).click();
-console.log(`✔ Salary Type Selected: ${finalSalaryType}`);
+console.log(`✔ Random Salary Type Selected: ${finalSalaryType}`);
 
 await page.waitForTimeout(500);
 
-// ======== FILL FIELDS BASED ON TYPE ========
+// ======== FILL FIELDS BASED ON SALARY TYPE ========
+
+// Helper to generate random number in range
+const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 // ------------------ FIXED --------------------
 if (finalSalaryType === "Fixed") {
   const amountInput = page.locator('input[name="amount"]');
-  await amountInput.fill(amountEnv || "50000"); // fallback
-  console.log("✔ Fixed Salary Amount Entered");
+  const randomAmount = getRandomInt(30000, 150000); // random fixed salary
+  await amountInput.fill(randomAmount.toString());
+  console.log(`✔ Fixed Salary Amount Entered: ${randomAmount}`);
 }
 
 // ------------------ RANGE --------------------
@@ -996,27 +945,31 @@ else if (finalSalaryType === "Range") {
   const minInput = page.locator('input[name="minimum"]');
   const maxInput = page.locator('input[name="maximum"]');
 
-  await minInput.fill(minEnv || "40000");
-  await page.waitForTimeout(300);
-  await maxInput.fill(maxEnv || "90000");
+  const randomMin = getRandomInt(20000, 100000);
+  const randomMax = getRandomInt(randomMin + 5000, randomMin + 100000); // max > min
 
-  console.log("✔ Range Salary Entered (Min + Max)");
+  await minInput.fill(randomMin.toString());
+  await page.waitForTimeout(200);
+  await maxInput.fill(randomMax.toString());
+
+  console.log(`✔ Range Salary Entered: Min=${randomMin}, Max=${randomMax}`);
 }
 
 // ------------------ UPTO --------------------
 else if (finalSalaryType === "Upto") {
   const uptoInput = page.locator('input[name="amount"]');
-  await uptoInput.fill(amountEnv || "100000");
-  console.log("✔ Upto Amount Entered");
+  const randomUpto = getRandomInt(50000, 200000);
+  await uptoInput.fill(randomUpto.toString());
+  console.log(`✔ Upto Amount Entered: ${randomUpto}`);
 }
 
 // ------------------ FROM --------------------
 else if (finalSalaryType === "From") {
   const fromInput = page.locator('input[name="amount"]');
-  await fromInput.fill(amountEnv || "60000");
-  console.log("✔ From Amount Entered");
+  const randomFrom = getRandomInt(30000, 150000);
+  await fromInput.fill(randomFrom.toString());
+  console.log(`✔ From Amount Entered: ${randomFrom}`);
 }
-
 
 // // Read env value
 // const discloseSalaryEnv = process.env.DISCLOSE_SALARY === "true";
@@ -1037,52 +990,32 @@ else if (finalSalaryType === "From") {
 // } else {
 //     console.log("Checkbox already in correct state.");
 // }
-
-
-//---------------Recruiter name---------------------//
-// Get recruiter name from env
-const recruiterNameEnv = process.env.RECRUITER_NAME;
-
-
-
+// --------------- Recruiter Name --------------------- //
+// ----- RECRUITER SELECTION -----
+// 1️⃣ Open the recruiter dropdown (4th combobox)
 const recruiterDropdown = page.locator('button[role="combobox"]').nth(3);
 await recruiterDropdown.click();
-await page.waitForTimeout(500);
-// Open dropdown
-//await page.locator('button[role="combobox"]').click();
-//await page.waitForTimeout(300);
+await page.waitForTimeout(500); // wait for dropdown animation
 
-// Get all recruiter options
-const recruiterOptions = page.locator('[role="option"]');
-const recruiterCount = await recruiterOptions.count();
+// 2️⃣ Locate all recruiter options inside the Radix viewport
+const recruiterOptionsContainer = page.locator('div[data-radix-select-viewport]');
+const recruiterOptions = recruiterOptionsContainer.locator('div[role="option"]');
+const totalRecruiters = await recruiterOptions.count();
 
-let recruiterFound = false;
+if (totalRecruiters === 0) {
+  console.log("⚠ No recruiter options found.");
+} else {
+  // 3️⃣ Pick a random recruiter
+  const randIdx = Math.floor(Math.random() * totalRecruiters);
+  const randomName = await recruiterOptions.nth(randIdx).innerText();
 
-// Match with env name
-for (let i = 0; i < recruiterCount; i++) {
-  const recruiterText = await recruiterOptions.nth(i).innerText();
-
-  if (
-    recruiterNameEnv &&
-    recruiterText.trim().toLowerCase() === recruiterNameEnv.trim().toLowerCase()
-  ) {
-    await recruiterOptions.nth(i).click();
-    console.log(`Selected recruiter from ENV: ${recruiterText}`);
-    recruiterFound = true;
-    break;
-  }
+  await recruiterOptions.nth(randIdx).click();
+  console.log(`✔ Selected RANDOM recruiter: ${randomName}`);
 }
 
-// If no match → random select
-if (!recruiterFound) {
-  const randomIndex = Math.floor(Math.random() * recruiterCount);
-  const selected = await recruiterOptions.nth(randomIndex).innerText();
-  await recruiterOptions.nth(randomIndex).click();
-  console.log(`Selected RANDOM recruiter: ${selected}`);
-}
 
-// ----------- Recruiter Email Auto-Fill Override ------------- //
-const recruiterEmailEnv = process.env.RECRUITER_EMAIL;
+
+console.log("📧 Filling random Recruiter Email...");
 
 // Email input locator
 const emailInput = page.locator('input[name="email"]');
@@ -1090,34 +1023,74 @@ const emailInput = page.locator('input[name="email"]');
 // Wait to ensure auto-filled value appears
 await page.waitForTimeout(1000);
 
-if (recruiterEmailEnv && recruiterEmailEnv.trim() !== "") {
-  // Clear existing auto-filled email
-  await emailInput.fill("");
-  await emailInput.fill(recruiterEmailEnv.trim());
-
-  console.log(`Email overridden with ENV value: ${recruiterEmailEnv}`);
-} else {
-  const autoEmail = await emailInput.inputValue();
-  console.log(`Using auto-filled email: ${autoEmail}`);
-
-  // 👀 Also wait if using auto email
-  await page.waitForTimeout(2000);
+// Helper function to generate random email
+function generateRandomEmail() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let username = '';
+  for (let i = 0; i < 8; i++) {
+    username += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const domains = ['example.com', 'testmail.com', 'mailinator.com'];
+  const domain = domains[Math.floor(Math.random() * domains.length)];
+  return `${username}@${domain}`;
 }
-// ====== ENV Values ====== //
-const countryNameEnv = process.env.COUNTRY_CODE?.trim(); // e.g., "India"
-const phoneNumberEnv = process.env.PHONE_NUMBER?.trim(); // e.g., "9876543210"
 
-// 1️⃣ Open Country Dropdown
-await page.getByRole('combobox', { name: 'Country selector' }).click();
-  await page.getByRole('option', { name: 'Hong Kong +' }).click();
-  await page.locator('input[name="phone"]').click();
-  await page.locator('input[name="phone"]').fill('+852 3453 45345');
+// Generate a random email
+const randomEmail = generateRandomEmail();
 
-// 4️⃣ Enter Phone Number
+// Clear any existing value and enter the random email
+await emailInput.fill("");
+await emailInput.fill(randomEmail);
+
+console.log(`✔ Random email entered: ${randomEmail}`);
+
+console.log("📱 Selecting random country code and phone number");
+
+// 1️⃣ Open country selector dropdown
+const countryDropdown = page.getByRole('combobox', { name: 'Country selector' });
+await countryDropdown.click();
+await page.waitForTimeout(500);
+
+// 2️⃣ Get all country options (react-international-phone)
+const countryOptions = page.locator('li[role="option"]');
+const countryCount = await countryOptions.count();
+
+if (countryCount === 0) {
+  console.log("⚠ No country options found.");
+  return;
+}
+
+// 3️⃣ Pick a RANDOM visible country
+let randomCountryIndex;
+let selectedCountryText;
+
+for (let i = 0; i < countryCount; i++) {
+  const option = countryOptions.nth(i);
+  if (await option.isVisible()) {
+    randomCountryIndex = i;
+    selectedCountryText = await option.innerText();
+    break;
+  }
+}
+
+await countryOptions.nth(randomCountryIndex).click({ force: true });
+console.log(`🌍 Selected Country: ${selectedCountryText}`);
+
+// 4️⃣ Generate random phone number (7–15 digits)
+const phoneLength = Math.floor(Math.random() * 9) + 7; // 7–15
+let randomPhone = '';
+
+for (let i = 0; i < phoneLength; i++) {
+  randomPhone += Math.floor(Math.random() * 10);
+}
+
+// 5️⃣ Enter phone number
 const phoneInput = page.locator('input[name="phone"]');
 await phoneInput.fill('');
-await phoneInput.type(phoneNumberEnv);
-console.log(`📱 Phone Number Entered: ${phoneNumberEnv}`);
+await phoneInput.type(randomPhone);
+
+console.log(`📱 Phone Number Entered: ${randomPhone}`);
+
 
 await page.waitForTimeout(1000); // pause for visibility
 
@@ -1336,33 +1309,7 @@ for (let q = 1; q <= total; q++) {
     }
   }
 
-  // // 🟣 CASE 2 → File Upload → Select File Types
-  // else if (type === "file upload") {
-  //   console.log("🔧 Selecting File Types...");
-  //   const fileTypes = (process.env[`FILE_TYPES_${q}`] || "")
-  //     .split(",")
-  //     .map(x => x.trim().toLowerCase())
-  //     .filter(Boolean);
-
-  //   const ddlFileType = page.locator('button[role="combobox"]').nth(1);
-
-  //   for (const f of fileTypes) {
-  //     await ddlFileType.click();
-  //     await page.waitForTimeout(350);
-
-  //     const option = page.locator(
-  //       `//div[contains(@class,'flex')][.//text()[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'), "${f}")]]`
-  //     );
-
-  //     if (await option.count()) {
-  //       await option.click();
-  //       console.log(`  ✔ Selected File Type: ${f}`);
-  //     } else {
-  //       console.log(`  ⚠ File type not found: ${f}`);
-  //     }
-  //     await page.waitForTimeout(250);
-  //   }
-  // }
+  
 
   // 🟣 CASE 2 → File Upload → Select File Types
 else if (type === "file upload") {
@@ -1477,33 +1424,57 @@ for (let i = 1; i <= totalStages; i++) {
     }
     console.log("✔ Interview selected");
   } else if (stageType === "assessment") {
-    const assessmentBtn = page.locator('#Assessment');
-    await assessmentBtn.waitFor({ state: 'visible', timeout: 5000 });
-    if ((await assessmentBtn.getAttribute('aria-checked')) !== 'true') {
-      await assessmentBtn.click();
-    }
-    console.log("✔ Assessment selected");
+  const assessmentBtn = page.locator('#Assessment');
+  await assessmentBtn.waitFor({ state: 'visible', timeout: 5000 });
 
-    // --------------------- MODERATOR ---------------------
-    const moderatorName = process.env[`MODERATOR_NAME_${i}`];
-    const moderatorDDL = page.locator('button[role="combobox"]').nth(0);
-    await moderatorDDL.waitFor({ state: 'visible', timeout: 5000 });
-    await moderatorDDL.click();
-    const moderatorOption = page.locator(`div[role="option"] span:text-is("${moderatorName}")`).first();
-    await moderatorOption.waitFor({ state: 'visible', timeout: 5000 });
-    await moderatorOption.click();
-    console.log("✔ Moderator =", moderatorName);
-
-    // --------------------- ASSESSMENT ---------------------
-    const assessmentName = process.env[`ASSESSMENT_NAME_${i}`];
-    const assessmentDDL = page.locator('button[role="combobox"]').nth(1);
-    await assessmentDDL.waitFor({ state: 'visible', timeout: 5000 });
-    await assessmentDDL.click();
-    const assessmentOption = page.locator(`div[role="option"] span:text-is("${assessmentName}")`).first();
-    await assessmentOption.waitFor({ state: 'visible', timeout: 5000 });
-    await assessmentOption.click();
-    console.log("✔ Assessment =", assessmentName);
+  if ((await assessmentBtn.getAttribute('aria-checked')) !== 'true') {
+    await assessmentBtn.click();
   }
+  console.log("✔ Assessment selected");
+
+  // --------------------- RANDOM MODERATOR ---------------------
+  console.log("🎲 Selecting RANDOM Moderator");
+
+  const moderatorDDL = page.locator('button[role="combobox"]').nth(0);
+  await moderatorDDL.waitFor({ state: 'visible', timeout: 5000 });
+  await moderatorDDL.click();
+  await page.waitForTimeout(400);
+
+  const moderatorOptions = page.locator('div[role="option"]');
+  const moderatorCount = await moderatorOptions.count();
+
+  if (moderatorCount > 0) {
+    const randomModeratorIndex = Math.floor(Math.random() * moderatorCount);
+    const moderatorText = await moderatorOptions.nth(randomModeratorIndex).innerText();
+
+    await moderatorOptions.nth(randomModeratorIndex).click({ force: true });
+    console.log(`✔ Random Moderator Selected: ${moderatorText}`);
+  } else {
+    console.log("⚠ No moderator options found");
+  }
+
+  // --------------------- RANDOM ASSESSMENT ---------------------
+  console.log("🎲 Selecting RANDOM Assessment");
+
+  const assessmentDDL = page.locator('button[role="combobox"]').nth(1);
+  await assessmentDDL.waitFor({ state: 'visible', timeout: 5000 });
+  await assessmentDDL.click();
+  await page.waitForTimeout(400);
+
+  const assessmentOptions = page.locator('div[role="option"]');
+  const assessmentCount = await assessmentOptions.count();
+
+  if (assessmentCount > 0) {
+    const randomAssessmentIndex = Math.floor(Math.random() * assessmentCount);
+    const assessmentText = await assessmentOptions.nth(randomAssessmentIndex).innerText();
+
+    await assessmentOptions.nth(randomAssessmentIndex).click({ force: true });
+    console.log(`✔ Random Assessment Selected: ${assessmentText}`);
+  } else {
+    console.log("⚠ No assessment options found");
+  }
+}
+
 
   // --------------------- CLICK ADD TO SAVE ---------------------
   const addBtn = page.getByRole("button", { name: /^add$/i });

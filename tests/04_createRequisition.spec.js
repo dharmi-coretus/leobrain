@@ -103,6 +103,6 @@ test('Go to Settings menu and create Requisition', async ({ page }) => {
 
   await createButton.waitFor({ state: 'visible' });
   await createButton.click();
-
+await page.waitForTimeout(3000);
   console.log('🎉 Requisition created successfully!');
 });
