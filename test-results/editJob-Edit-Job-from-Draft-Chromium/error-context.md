@@ -1,0 +1,100 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img [ref=e5]
+      - img [ref=e15] [cursor=pointer]
+      - button "Create" [ref=e17] [cursor=pointer]:
+        - img
+        - text: Create
+      - img [ref=e18]
+      - generic [ref=e21] [cursor=pointer]: D
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - button "Dashboard" [ref=e26] [cursor=pointer]:
+          - img [ref=e28]
+          - generic [ref=e31]: Dashboard
+        - button "Jobs" [ref=e33] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: Jobs
+        - button "Candidates" [ref=e40] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e44]: Candidates
+        - button "Interviews" [ref=e46] [cursor=pointer]:
+          - img [ref=e48]
+          - generic [ref=e51]: Interviews
+        - button "Library" [ref=e54] [cursor=pointer]:
+          - img [ref=e56]
+          - generic [ref=e58]: Library
+        - button "Assessment" [ref=e60] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e72]: Assessment
+        - button "Apps" [ref=e74] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e81]: Apps
+        - button "Templates" [ref=e83] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e91]: Templates
+        - button "Settings" [ref=e93] [cursor=pointer]:
+          - img [ref=e95]
+          - generic [ref=e97]: Settings
+      - link "Administration" [ref=e98] [cursor=pointer]:
+        - /url: https://madhav.leobrain.com/dashboard
+        - img [ref=e100]
+        - paragraph [ref=e105]: Administration
+    - generic [ref=e107]:
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111] [cursor=pointer]: Jobs / Draft Job
+          - heading "TICVuXYanifyARmrNKDlOHeTIkDiYeRrtloysPF" [level=1] [ref=e112]
+        - generic [ref=e115]:
+          - button "1 Job Detail" [ref=e117]:
+            - generic [ref=e118]: "1"
+            - heading "Job Detail" [level=3] [ref=e120]
+          - button "2 Job Description" [ref=e123]:
+            - generic [ref=e124]: "2"
+            - heading "Job Description" [level=3] [ref=e126]
+          - button "3 Payout" [ref=e129]:
+            - generic [ref=e130]: "3"
+            - heading "Payout" [level=3] [ref=e132]
+          - button "4 Screening" [ref=e135]:
+            - generic [ref=e136]: "4"
+            - heading "Screening" [level=3] [ref=e138]
+          - button "5 Pipelines" [ref=e141]:
+            - generic [ref=e142]: "5"
+            - heading "Pipelines" [level=3] [ref=e144]
+      - generic [ref=e147]:
+        - generic [ref=e148]:
+          - generic [ref=e151]:
+            - heading "Screening Question (Optional)" [level=3] [ref=e152]
+            - paragraph [ref=e153]: Add custom screening questions
+          - button "Use template" [ref=e155] [cursor=pointer]:
+            - img
+            - text: Use template
+        - generic [ref=e156]:
+          - generic [ref=e158]:
+            - generic [ref=e159]:
+              - generic [ref=e161]:
+                - generic [ref=e162]: Question
+                - paragraph [ref=e163]: Write your screening question here
+                - textbox "Question" [ref=e165]
+              - generic [ref=e167]:
+                - generic [ref=e168]: Type
+                - paragraph [ref=e169]: Choose the question format
+                - combobox "Type" [ref=e170]:
+                  - img
+                - combobox [ref=e171]
+            - generic [ref=e173]:
+              - checkbox [ref=e174]
+              - checkbox
+              - generic [ref=e175]:
+                - generic [ref=e176]: Is it mandatory?
+                - paragraph [ref=e177]: Mark if answering this question is required
+            - button "Add Question" [ref=e179] [cursor=pointer]
+          - generic [ref=e180]:
+            - button "Previous" [ref=e181] [cursor=pointer]
+            - button "Next" [ref=e182] [cursor=pointer]
+  - region "Notifications alt+T"
+```

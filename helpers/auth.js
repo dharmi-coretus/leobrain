@@ -19,7 +19,7 @@ await emailInput.fill(process.env.EMAIL);
   await page.waitForLoadState('networkidle');
 
   // Save session
-  await page.context().storageState({ path: 'storageState.json' });
+ // await page.context().storageState({ path: 'storageState.json' });
 
 }
 

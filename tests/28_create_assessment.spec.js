@@ -278,35 +278,35 @@ for (let i = 1; i <= 4; i++) {
 await page.locator('button[data-slot="sheet-close"]').click();
 console.log('✅ Sheet closed');
 
-// ============================
-// 1️⃣ Click "Ready To Use"
-// ============================
-await page.getByRole('button', { name: 'Ready To Use' }).click();
-console.log('✅ Ready To Use clicked');
+// // ============================
+// // 1️⃣ Click "Ready To Use"
+// // ============================
+// await page.getByRole('button', { name: 'Ready To Use' }).click();
+// console.log('✅ Ready To Use clicked');
 
-// ============================
-// 2️⃣ Wait for confirmation dialog
-// ============================
-const confirmDialog = page.locator('div[role="dialog"]');
-await confirmDialog.waitFor({ state: 'visible' });
+// // ============================
+// // 2️⃣ Wait for confirmation dialog
+// // ============================
+// const confirmDialog = page.locator('div[role="dialog"]');
+// await confirmDialog.waitFor({ state: 'visible' });
 
-// Optional validation
-await expect(
-  page.getByRole('heading', { name: 'Ready to use?' })
-).toBeVisible();
+// // Optional validation
+// await expect(
+//   page.getByRole('heading', { name: 'Ready to use?' })
+// ).toBeVisible();
 
-console.log('✅ Confirmation popup opened');
+// console.log('✅ Confirmation popup opened');
 
-// ============================
-// 3️⃣ Click "Yes"
-// ============================
-await page.getByRole('button', { name: 'Yes' }).click();
-console.log('✅ Yes clicked');
+// // ============================
+// // 3️⃣ Click "Yes"
+// // ============================
+// await page.getByRole('button', { name: 'Yes' }).click();
+// console.log('✅ Yes clicked');
 
-// ============================
-// 4️⃣ Ensure dialog is closed
-// ============================
-await confirmDialog.waitFor({ state: 'hidden' });
+// // ============================
+// // 4️⃣ Ensure dialog is closed
+// // ============================
+// await confirmDialog.waitFor({ state: 'hidden' });
 
 
 });

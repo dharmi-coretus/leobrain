@@ -93,4 +93,5 @@ test('Go to template menu and add pipeline template with interview and assessmen
 
   // ---------- FINAL SAVE ----------
   await page.locator('button', { hasText: 'Save' }).click();
+  await page.waitForTimeout(1000);
 });
